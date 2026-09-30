@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Splash/launch theme. Compose's SecureCamTheme replaces this the
+         moment setContent runs; keeping it paper-colored avoids a flash. -->
+    <style name="Theme.SecureCam" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:statusBarColor">@color/ink</item>
+        <item name="android:navigationBarColor">@color/ink</item>
+        <item name="android:windowBackground">@color/ink</item>
+    </style>
+</resources>

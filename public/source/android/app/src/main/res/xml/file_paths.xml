@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Paths shared through the FileProvider (legacy API 26–28 captures). -->
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <external-path
+        name="securecam_media"
+        path="." />
+</paths>

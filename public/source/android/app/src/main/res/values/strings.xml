@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">SecureCam</string>
+
+    <!-- Background recording service (privacy-critical, always visible) -->
+    <string name="bg_notification_channel_name">Background recording</string>
+    <string name="bg_notification_channel_desc">Shows while SecureCam records video from the front camera in the background.</string>
+    <string name="bg_notification_title">SecureCam - Background Recording Active</string>
+    <string name="bg_notification_content">Front camera is recording video. Tap to open app and stop.</string>
+    <string name="bg_notification_action_stop">Stop Recording</string>
+    <string name="bg_notification_action_open">Open App</string>
+    <string name="bg_notification_saved_title">Recording saved</string>
+    <string name="bg_notification_saved_content">Your video was saved to the gallery.</string>
+
+    <!-- Generic UI -->
+    <string name="camera_permission_required">SecureCam needs the camera to work.</string>
+    <string name="ok">OK</string>
+    <string name="cancel">Cancel</string>
+    <string name="delete">Delete</string>
+    <string name="share">Share</string>
+    <string name="gallery">Gallery</string>
+    <string name="gallery_empty">Nothing captured yet</string>
+    <string name="gallery_empty_hint">Photos and videos you take appear here.</string>
+    <string name="delete_confirm_title">Delete item?</string>
+    <string name="delete_confirm_body">This will permanently remove it from your device.</string>
+</resources>
