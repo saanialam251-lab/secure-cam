@@ -43,7 +43,8 @@ object FileUtils {
 
     // ── Name generation ─────────────────────────────────────────────────────
 
-    fun newPhotoName(): String = "IMG_${fileNameFormat.format(Date())}.jpg"
+    fun newPhotoName(isRaw: Boolean = false): String =
+        if (isRaw) "IMG_${fileNameFormat.format(Date())}.dng" else "IMG_${fileNameFormat.format(Date())}.jpg"
 
     fun newVideoName(): String = "VID_${fileNameFormat.format(Date())}.mp4"
 
@@ -57,12 +58,13 @@ object FileUtils {
      * the pending row first. [ImageCapture.OnImageCapturedCallback] output is
      * streamed into this URI by the caller.
      */
-    fun createPhotoUri(context: Context): Uri? {
-        val name = newPhotoName()
+    fun createPhotoUri(context: Context, isRaw: Boolean = false): Uri? {
+        val name = newPhotoName(isRaw)
+        val mime = if (isRaw) "image/x-adobe-dng" else "image/jpeg"
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             val values = ContentValues().apply {
                 put(MediaStore.MediaColumns.DISPLAY_NAME, name)
-                put(MediaStore.MediaColumns.MIME_TYPE, "image/jpeg")
+                put(MediaStore.MediaColumns.MIME_TYPE, mime)
                 put(MediaStore.MediaColumns.RELATIVE_PATH, PICTURES_RELATIVE_PATH)
             }
             context.contentResolver.insert(
@@ -83,7 +85,8 @@ object FileUtils {
     }
 
     /** The raw legacy file backing a FileProvider URI (API 26–28 only). */
-    fun legacyPhotoFile(): File = File(LEGACY_PICTURES_DIR, newPhotoName())
+    fun legacyPhotoFile(isRaw: Boolean = false): File =
+        File(LEGACY_PICTURES_DIR, newPhotoName(isRaw))
 
     /**
      * Creates a MediaStore entry for a new video and returns both the target

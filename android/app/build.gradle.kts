@@ -75,8 +75,8 @@ dependencies {
     // ---- Image loading (gallery thumbnails) ---------------------------------
     implementation("io.coil-kt:coil-compose:2.7.0")
 
-    // ---- CameraX (latest stable) ---------------------------------------------
-    val cameraxVersion = "1.4.1"
+    // ---- CameraX (latest stable; 1.6.x includes RAW/DNG capture) -------------
+    val cameraxVersion = "1.6.2"
     implementation("androidx.camera:camera-core:$cameraxVersion")
     implementation("androidx.camera:camera-camera2:$cameraxVersion")
     implementation("androidx.camera:camera-lifecycle:$cameraxVersion")

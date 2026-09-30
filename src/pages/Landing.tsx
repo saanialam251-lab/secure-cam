@@ -9,6 +9,7 @@ import {
   Play,
   Share2,
   ShieldCheck,
+  SlidersHorizontal,
   Smartphone,
   Timer,
   Video,
@@ -43,6 +44,11 @@ const features = [
     icon: Aperture,
     title: "Deliberate controls",
     body: "Pinch to zoom, tap to focus, three-second grid overlay, 3/5/10-second self-timer.",
+  },
+  {
+    icon: SlidersHorizontal,
+    title: "Pro (DSLR) mode",
+    body: "Manual ISO, shutter, white balance, focus and EV — with a live histogram and RAW DNG capture.",
   },
   {
     icon: Grid3x3,

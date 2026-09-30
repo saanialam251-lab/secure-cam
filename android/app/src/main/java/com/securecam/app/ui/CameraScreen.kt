@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -152,6 +153,19 @@ fun CameraScreen(
                     .padding(horizontal = 12.dp, vertical = 8.dp),
             )
 
+            // ── Pro mode: live histogram under the top bar ───────────────
+            // Nudged below the recording pill when one is active.
+            if (uiState.proModeEnabled) {
+                ProControls.HistogramChart(
+                    bins = uiState.histogram,
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .statusBarsPadding()
+                        .padding(top = if (uiState.isRecording) 140.dp else 96.dp)
+                        .size(width = 220.dp, height = 48.dp),
+                )
+            }
+
             // ── Focus ring ───────────────────────────────────────────────
             uiState.focusIndicator?.let { indicator ->
                 BoxWithConstraints(Modifier.fillMaxSize()) {
@@ -208,6 +222,16 @@ fun CameraScreen(
                     .padding(bottom = 20.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
+                // Pro ("DSLR") mode manual controls panel.
+                if (uiState.proModeEnabled) {
+                    ProControls.Panel(
+                        viewModel = viewModel,
+                        uiState = uiState,
+                        modifier = Modifier.heightIn(max = 320.dp),
+                    )
+                    Spacer(Modifier.height(12.dp))
+                }
+
                 // Background front-camera recording feature (spec §B).
                 BackgroundRecordingControls(
                     isBackgroundRecording = isBackgroundRecording,
@@ -284,8 +308,16 @@ private fun CameraPreview(
         )
     }
 
-    // (Re)bind when the provider, surface, lens or aspect ratio changes.
-    LaunchedEffect(cameraProvider, previewView, uiState.lensFacing, uiState.aspectRatio) {
+    // (Re)bind when the provider, surface, lens, aspect ratio, or Pro-mode
+    // toggles change (Pro mode swaps the analysis stream + output format).
+    LaunchedEffect(
+        cameraProvider,
+        previewView,
+        uiState.lensFacing,
+        uiState.aspectRatio,
+        uiState.proModeEnabled,
+        uiState.rawEnabled,
+    ) {
         val provider = cameraProvider ?: return@LaunchedEffect
         val surface = previewView ?: return@LaunchedEffect
         viewModel.bindCamera(
@@ -412,6 +444,10 @@ private fun TopBar(
             AspectChip("1:1", uiState.aspectRatio == AspectRatioOption.SQUARE) {
                 viewModel.setAspectRatio(AspectRatioOption.SQUARE)
             }
+            // Pro / DSLR mode toggle.
+            ProChip(selected = uiState.proModeEnabled) {
+                viewModel.setProMode(!uiState.proModeEnabled)
+            }
         }
 
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -476,6 +512,21 @@ private fun AspectChip(label: String, selected: Boolean, onClick: () -> Unit) {
         modifier = Modifier
             .clip(RoundedCornerShape(999.dp))
             .background(if (selected) Paper else Ink.copy(alpha = 0.35f))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 6.dp),
+    )
+}
+
+/** PRO toggle chip; selects with the recording-red accent. */
+@Composable
+private fun ProChip(selected: Boolean, onClick: () -> Unit) {
+    Text(
+        text = "PRO",
+        style = androidx.compose.material3.MaterialTheme.typography.labelMedium,
+        color = if (selected) Paper else GrayLight,
+        modifier = Modifier
+            .clip(RoundedCornerShape(999.dp))
+            .background(if (selected) RecordRed else Ink.copy(alpha = 0.35f))
             .clickable(onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 6.dp),
     )
