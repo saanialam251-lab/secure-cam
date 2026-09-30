@@ -358,6 +358,7 @@ object ProControls {
         Spacer(Modifier.height(10.dp))
     }
 
+    @Composable
     private fun sliderColors() = SliderDefaults.colors(
         thumbColor = Paper,
         activeTrackColor = Paper.copy(alpha = 0.9f),
