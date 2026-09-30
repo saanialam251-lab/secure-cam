@@ -169,8 +169,8 @@ fun CameraScreen(
             // ── Focus ring ───────────────────────────────────────────────
             uiState.focusIndicator?.let { indicator ->
                 BoxWithConstraints(Modifier.fillMaxSize()) {
-                    val x = (indicator.x * maxWidth.toPx()).roundToInt()
-                    val y = (indicator.y * maxHeight.toPx()).roundToInt()
+                    val x = (indicator.x * constraints.maxWidth).roundToInt()
+                    val y = (indicator.y * constraints.maxHeight).roundToInt()
                     Box(
                         Modifier
                             .offset { IntOffset(x - 30.dp.toPx().roundToInt(), y - 30.dp.toPx().roundToInt()) }
@@ -246,7 +246,7 @@ fun CameraScreen(
                         // If permissions are missing MainActivity's gate
                         // already ran at launch; ask again to be safe.
                         else {
-                            viewModel.messages.tryEmit("Camera, microphone and notification permissions are required")
+                            viewModel.postMessage("Camera, microphone and notification permissions are required")
                         }
                     },
                     onStop = { viewModel.stopBackgroundRecording(context) },
@@ -272,7 +272,7 @@ fun CameraScreen(
                     containerColor = InkElevated,
                     contentColor = Paper,
                     shape = RoundedCornerShape(8.dp),
-                ) { Text(data.visualMessage, style = androidx.compose.material3.MaterialTheme.typography.labelLarge) }
+                ) { Text(data.visuals.message, style = androidx.compose.material3.MaterialTheme.typography.labelLarge) }
             }
         }
     }
@@ -301,7 +301,7 @@ private fun CameraPreview(
             {
                 cameraProvider = runCatching { future.get() }.getOrNull()
                 if (cameraProvider == null) {
-                    viewModel.messages.tryEmit("Camera unavailable on this device")
+                    viewModel.postMessage("Camera unavailable on this device")
                 }
             },
             ContextCompat.getMainExecutor(context),
@@ -666,3 +666,6 @@ private fun BottomBar(
         }
     }
 }
+
+                    
+            
