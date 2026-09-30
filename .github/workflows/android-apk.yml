@@ -36,8 +36,13 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+      # The ubuntu-latest runner already ships the Android SDK (ANDROID_HOME).
+      # android-actions/setup-android@v3 was failing here with
+      # "Failed to find package 'tools'" (removed from sdkmanager), so it is
+      # replaced by a plain license-acceptance step.
+      - name: Accept Android SDK licenses
+        working-directory: .
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
 
       - name: Set up Gradle caching
         uses: gradle/actions/setup-gradle@v4
