@@ -92,9 +92,12 @@ export default function Landing() {
             <a href="#build" className="transition-colors hover:text-foreground">
               Build
             </a>
+            <a href="/downloads" className="transition-colors hover:text-foreground">
+              Downloads
+            </a>
           </nav>
           <a
-            href="#build"
+            href="/downloads"
             className="rounded-full bg-foreground px-4 py-1.5 text-[13px] font-medium text-background transition-opacity hover:opacity-85"
           >
             Get the APK
@@ -125,7 +128,7 @@ export default function Landing() {
             </p>
             <div className="mt-10 flex flex-wrap items-center gap-4">
               <a
-                href="#build"
+                href="/downloads"
                 className="inline-flex items-center gap-2 rounded-full bg-foreground px-6 py-2.5 text-sm font-medium text-background transition-opacity hover:opacity-85"
               >
                 <Download className="size-4" />
@@ -322,7 +325,15 @@ export default function Landing() {
                 GitHub Actions workflow assembles debug and release APKs with
                 JDK 17 and the Android SDK. Every tagged release
                 (<code className="text-foreground">v1.0.0</code>…) gets the
-                artifacts attached automatically.
+                artifacts attached automatically. Prefer a local build? Grab
+                the complete source from the{" "}
+                <a
+                  href="/downloads"
+                  className="text-foreground underline underline-offset-4 hover:opacity-80"
+                >
+                  downloads page
+                </a>
+                .
               </p>
               <ol className="mt-8 space-y-3 text-[13px] text-muted-foreground">
                 <li className="flex gap-3">
