@@ -10,6 +10,7 @@ import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.CountDownTimer
+import android.os.IBinder
 import android.util.Log
 import android.widget.Toast
 import androidx.camera.core.CameraSelector
@@ -132,6 +133,13 @@ class BackgroundVideoRecordingService : Service(), LifecycleOwner {
         // happening and be able to stop it.
         promoteToForeground()
         _isRunning.value = true
+    }
+
+    // Started (not bound) service. Service.onBind() is abstract, so it MUST be
+    // overridden; the lifecycle dispatcher also needs to hear about binds.
+    override fun onBind(intent: Intent?): IBinder? {
+        dispatcher.onServicePreSuperOnBind()
+        return null
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -259,7 +267,13 @@ class BackgroundVideoRecordingService : Service(), LifecycleOwner {
 
         // BG_<timestamp>.mp4 in Movies/SecureCam (MediaStore on API 29+,
         // direct public file + MediaScanner on API 26–28) — see FileUtils.
-        val output = FileUtils.createBackgroundVideoOutput(this)
+        val output = try {
+            FileUtils.createBackgroundVideoOutput(this)
+        } catch (e: Exception) {
+            Log.e(TAG, "Could not create background video output", e)
+            finishServiceNow()
+            return
+        }
         this.output = output
 
         val prepared: PendingRecording = when (output) {
