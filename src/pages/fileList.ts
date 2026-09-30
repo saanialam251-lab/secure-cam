@@ -297,8 +297,8 @@ export const PROJECT_FILES: ProjectFile[] = [
     lang: "tsx",
   },
   {
-    path: "src/pages/projectFiles.ts",
-    label: "projectFiles.ts — build-time manifest (legacy)",
+    path: "src/pages/fileList.ts",
+    label: "fileList.ts — download listing manifest",
     group: "web",
     lang: "ts",
   },
