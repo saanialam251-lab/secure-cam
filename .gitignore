@@ -1,0 +1,28 @@
+# ── Web (Freebuff preview workspace) ─────────────────────────────────────
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+*.log
+.vite/
+
+# ── Android ──────────────────────────────────────────────────────────────
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/.idea/
+android/captures/
+android/.kotlin/
+*.apk
+*.aab
+*.keystore
+!debug.keystore
+
+# ── OS / editor ──────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.idea/
+*.iml
+.vscode/

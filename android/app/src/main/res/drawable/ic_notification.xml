@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Monochrome notification icon: a filled recording dot inside a ring.
+     Android tints notification icons with the system color, so keep the
+     artwork solid alpha only. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M12,2 A10,10 0 1,0 12,22 A10,10 0 1,0 12,2 Z M12,4.5 A7.5,7.5 0 1,1 12,19.5 A7.5,7.5 0 1,1 12,4.5 Z" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M12,7.5 A4.5,4.5 0 1,1 12,16.5 A4.5,4.5 0 1,1 12,7.5 Z" />
+</vector>

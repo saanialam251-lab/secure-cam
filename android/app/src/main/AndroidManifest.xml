@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SecureCam manifest.
+
+     Every permission here maps 1:1 to a user-visible feature. Background
+     recording is NEVER silent: it always runs behind a persistent,
+     non-dismissable notification, as required by Google Play policy. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- ── Core camera features ─────────────────────────────────────────── -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-feature android:name="android.hardware.camera" android:required="true" />
+    <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
+
+    <!-- ── Foreground service (Android 14+ requires typed permissions) ──── -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CAMERA" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+
+    <!-- ── Notifications ────────────────────────────────────────────────── -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- ── Gallery access ───────────────────────────────────────────────── -->
+    <!-- Android 13+ granular media permissions (our own media only needs
+         MediaStore write, but users grant these so the in-app gallery can
+         list items). -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
+    <!-- Android 12 and below: storage read permission.
+         maxSdkVersion keeps it off Android 13+ where READ_MEDIA_* applies. -->
+    <uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+    <!-- Android 10+ scoped storage ignores WRITE_EXTERNAL_STORAGE; still
+         requested for API 26–28 where MediaStore writes need it. -->
+    <uses-permission
+        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="28"
+        tools:ignore="ScopedStorage" />
+
+    <!-- Disable the default LocalBroadcastManager lint noise / backup churn. -->
+    <application
+        android:name=".SecureCamApp"
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.SecureCam">
+
+        <!-- MainActivity hosts the entire Compose UI (camera + gallery).
+             Locked-orientation with handled config changes keeps the
+             camera surface stable; rotation is handled by re-binding. -->
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
+            android:launchMode="singleTask"
+            android:theme="@style/Theme.SecureCam">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- Background front-camera recorder.
+             foregroundServiceType="camera|microphone" is MANDATORY on
+             Android 14+: while-in-use camera/mic access from a service is
+             only granted when the type matches, and the persistent
+             notification (privacy rule) is started in onCreate(). -->
+        <service
+            android:name=".service.BackgroundVideoRecordingService"
+            android:exported="false"
+            android:foregroundServiceType="camera|microphone" />
+
+        <!-- Share/capture URIs for legacy (API 26–28) direct-file output. -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+    </application>
+</manifest>

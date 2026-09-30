@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Minimalism palette: near-monochrome with generous white space. -->
+    <color name="ink">#0A0A0A</color>
+    <color name="paper">#FAFAF8</color>
+    <color name="mid_gray">#6B6B6B</color>
+    <color name="divider">#E5E5E2</color>
+    <!-- The single intentional accent, used only for recording states. -->
+    <color name="record_red">#C7362B</color>
+</resources>
