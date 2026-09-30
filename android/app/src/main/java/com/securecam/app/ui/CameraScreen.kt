@@ -1,3 +1,5 @@
+               
+            
 package com.securecam.app.ui
 
 import androidx.camera.view.PreviewView
@@ -15,6 +17,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.calculateZoom
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
@@ -343,7 +346,7 @@ private fun CameraPreview(
                 .fillMaxSize()
                 // Tap-to-focus at the touched point.
                 .pointerInput(Unit) {
-                    androidx.compose.foundation.gestures.detectTapGestures(
+                    detectTapGestures(
                         onTap = { offset ->
                             viewModel.onTapFocus(
                                 x = offset.x / size.width.toFloat(),
@@ -478,9 +481,9 @@ private fun TopBar(
                 )
             }
         }
-
+ 
         }
-
+ 
         // Timer value badge under the bar (inside the Column, not the Row).
         if (uiState.timer != TimerOption.OFF) {
             Text(
@@ -495,14 +498,14 @@ private fun TopBar(
         }
     }
 }
-
+ 
 private fun nextTimer(current: TimerOption): TimerOption = when (current) {
     TimerOption.OFF -> TimerOption.THREE
     TimerOption.THREE -> TimerOption.FIVE
     TimerOption.FIVE -> TimerOption.TEN
     TimerOption.TEN -> TimerOption.OFF
 }
-
+ 
 @Composable
 private fun AspectChip(label: String, selected: Boolean, onClick: () -> Unit) {
     Text(
@@ -516,7 +519,7 @@ private fun AspectChip(label: String, selected: Boolean, onClick: () -> Unit) {
             .padding(horizontal = 12.dp, vertical = 6.dp),
     )
 }
-
+ 
 /** PRO toggle chip; selects with the recording-red accent. */
 @Composable
 private fun ProChip(selected: Boolean, onClick: () -> Unit) {
@@ -531,11 +534,10 @@ private fun ProChip(selected: Boolean, onClick: () -> Unit) {
             .padding(horizontal = 12.dp, vertical = 6.dp),
     )
 }
-
 // ─────────────────────────────────────────────────────────────────────────
 // Recording pill
 // ─────────────────────────────────────────────────────────────────────────
-
+ 
 @Composable
 private fun RecordingPill(elapsedText: String, modifier: Modifier = Modifier) {
     val transition = rememberInfiniteTransition(label = "rec")
@@ -566,11 +568,11 @@ private fun RecordingPill(elapsedText: String, modifier: Modifier = Modifier) {
         )
     }
 }
-
+ 
 // ─────────────────────────────────────────────────────────────────────────
 // Background recording controls (spec §B)
 // ─────────────────────────────────────────────────────────────────────────
-
+ 
 @Composable
 private fun BackgroundRecordingControls(
     isBackgroundRecording: Boolean,
@@ -598,11 +600,10 @@ private fun BackgroundRecordingControls(
         }
     }
 }
-
-// ─────────────────────────────────────────────────────────────────────────
+ // ─────────────────────────────────────────────────────────────────────────
 // Bottom bar: flip · shutter · gallery
 // ─────────────────────────────────────────────────────────────────────────
-
+ 
 @Composable
 private fun BottomBar(
     viewModel: CameraViewModel,
@@ -610,7 +611,7 @@ private fun BottomBar(
     onOpenGallery: () -> Unit,
 ) {
     val context = LocalContext.current
-
+ 
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -626,7 +627,7 @@ private fun BottomBar(
                 tint = if (uiState.isRecording) GrayLight else Paper,
             )
         }
-
+ 
         // Shutter: paper ring + solid core; red rounded-square while recording.
         val interaction = remember { MutableInteractionSource() }
         val pressed by interaction.collectIsPressedAsState()
@@ -655,7 +656,7 @@ private fun BottomBar(
                     }
                 },
         )
-
+ 
         // Gallery shortcut.
         IconButton(onClick = onOpenGallery) {
             Icon(
@@ -666,6 +667,5 @@ private fun BottomBar(
         }
     }
 }
-
-                    
-            
+ 
+         
