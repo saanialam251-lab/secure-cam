@@ -291,7 +291,7 @@ class BackgroundVideoRecordingService : Service(), LifecycleOwner {
         // Audio is included only when RECORD_AUDIO was granted.
         @SuppressLint("MissingPermission")
         val pendingRecording =
-            if (PermissionUtils.hasAudioPermission(this)) prepared.withAudio() else prepared
+            if (PermissionUtils.hasAudioPermission(this)) prepared.withAudioEnabled() else prepared
 
         try {
             // FRONT camera only, per spec.
