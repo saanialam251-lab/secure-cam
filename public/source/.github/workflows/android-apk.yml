@@ -36,8 +36,13 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+      # The ubuntu-latest runner already ships the Android SDK (ANDROID_HOME).
+      # android-actions/setup-android@v3 was failing here with
+      # "Failed to find package 'tools'" (removed from sdkmanager), so it is
+      # replaced by a plain license-acceptance step.
+      - name: Accept Android SDK licenses
+        working-directory: .
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
 
       - name: Set up Gradle caching
         uses: gradle/actions/setup-gradle@v4
@@ -46,10 +51,20 @@ jobs:
         run: chmod +x gradlew
 
       - name: Assemble debug APK
-        run: ./gradlew assembleDebug --stacktrace
+        run: |
+          set -o pipefail
+          ./gradlew assembleDebug --console=plain 2>&1 | tee build.log
+
+      # Prints ONLY the real compiler errors (lines starting with "e: ") so
+      # they are easy to copy when the build fails.
+      - name: Show compile errors
+        if: failure()
+        run: |
+          echo "=============== COMPILE ERRORS ==============="
+          grep -E '^e: |error:|What went wrong|Execution failed|requires' build.log | head -60 || true
 
       - name: Assemble release APK (unsigned)
-        run: ./gradlew assembleRelease --stacktrace
+        run: ./gradlew assembleRelease --console=plain
 
       - name: Rename APKs
         run: |

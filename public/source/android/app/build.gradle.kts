@@ -38,6 +38,7 @@ android {
     }
     kotlinOptions {
         jvmTarget = "17"
+        freeCompilerArgs += "-opt-in=androidx.camera.camera2.interop.ExperimentalCamera2Interop"
     }
     buildFeatures {
         compose = true
@@ -75,8 +76,8 @@ dependencies {
     // ---- Image loading (gallery thumbnails) ---------------------------------
     implementation("io.coil-kt:coil-compose:2.7.0")
 
-    // ---- CameraX (latest stable; 1.6.x includes RAW/DNG capture) -------------
-    val cameraxVersion = "1.6.2"
+    // ---- CameraX 1.4.2: has RAW/DNG; needs only compileSdk 35 + AGP 8.7 (1.6.x needs compileSdk 36 + AGP 8.9.1+) ----
+    val cameraxVersion = "1.4.2"
     implementation("androidx.camera:camera-core:$cameraxVersion")
     implementation("androidx.camera:camera-camera2:$cameraxVersion")
     implementation("androidx.camera:camera-lifecycle:$cameraxVersion")

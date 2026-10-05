@@ -1,5 +1,6 @@
 package com.securecam.app.viewmodel
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CaptureRequest
@@ -23,7 +24,9 @@ import androidx.camera.core.ViewPort
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.video.MediaStoreOutputOptions
 import androidx.camera.video.OutputOptions
+import androidx.camera.video.FileDescriptorOutputOptions
 import androidx.camera.video.FileOutputOptions
+import androidx.camera.video.PendingRecording
 import androidx.camera.video.Recorder
 import androidx.camera.video.Recording
 import androidx.camera.video.VideoCapture
@@ -156,6 +159,11 @@ class CameraViewModel : ViewModel() {
     private val _uiState = MutableStateFlow(CameraUiState())
     val uiState: StateFlow<CameraUiState> = _uiState.asStateFlow()
 
+    /** Lets the UI post a one-shot message (SharedFlow itself has no tryEmit). */
+    fun postMessage(text: String) {
+        _messages.tryEmit(text)
+    }
+
     /** One-shot user messages (toasts/snackbars). */
     private val _messages = MutableSharedFlow<String>(extraBufferCapacity = 8)
     val messages: SharedFlow<String> = _messages.asSharedFlow()
@@ -214,13 +222,9 @@ class CameraViewModel : ViewModel() {
             .setCaptureMode(ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY)
             .setTargetAspectRatio(targetAspectRatio)
             .setTargetRotation(targetRotation)
-            // Pro mode: Adobe DNG (RAW) output when the toggle is on and the
-            // sensor supports it. OutputFormat requires CameraX 1.5+.
-            .apply {
-                if (state.proModeEnabled && state.rawEnabled && state.proCapabilities.rawSupported) {
-                    setOutputFormat(ImageCapture.OUTPUT_FORMAT_RAW)
-                }
-            }
+            // NOTE: RAW/DNG output (ImageCapture.OUTPUT_FORMAT_RAW) needs
+            // CameraX 1.5+, which needs compileSdk 36 + AGP 8.9.1+. Re-enable
+            // here after upgrading the toolchain.
             .build()
 
         // Recorder: good default quality; audio is requested only when the
@@ -246,7 +250,7 @@ class CameraViewModel : ViewModel() {
                 .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_YUV_420_888)
                 .build()
                 .also { analysis ->
-                    analysis.setAnalyzer(analyzerExecutor, ::analyzeHistogram)
+                    analysis.setAnalyzer(analyzerExecutor) { image -> analyzeHistogram(image) }
                 }
         } else {
             null
@@ -374,12 +378,13 @@ class CameraViewModel : ViewModel() {
                     CameraCharacteristics.REQUEST_AVAILABLE_CAPABILITIES,
                 )?.contains(CameraCharacteristics.REQUEST_AVAILABLE_CAPABILITIES_RAW) == true
 
-            val evRange = cam.cameraInfo.exposureState.compensationRange
-            val evStep = cam.cameraInfo.exposureState.compensationStep.toFloat()
+            val evRange = cam.cameraInfo.exposureState.exposureCompensationRange
+            val evStep = cam.cameraInfo.exposureState.exposureCompensationStep.toFloat()
 
             val caps = ProCapabilities(
                 proSupported = characteristics != null || exposureRange != null,
-                rawSupported = rawAvailable,
+                // RAW capture is disabled with CameraX 1.4.x (see bindCamera).
+                rawSupported = false && rawAvailable,
                 isoRange = characteristics?.let { it.lower..it.upper } ?: ProCapabilities.Unavailable.isoRange,
                 exposureRangeNanos = exposureRange?.let { it.lower..it.upper }
                     ?: ProCapabilities.Unavailable.exposureRangeNanos,
@@ -574,7 +579,9 @@ class CameraViewModel : ViewModel() {
         )
         builder.setCaptureRequestOption(
             CaptureRequest.COLOR_CORRECTION_GAINS,
-            gains,
+            android.hardware.camera2.params.RggbChannelVector(
+                gains[0], gains[1], gains[1], gains[2],
+            ),
         )
     }
 
@@ -793,7 +800,7 @@ class CameraViewModel : ViewModel() {
                 ImageCapture.OutputFileOptions.Builder(
                     context.contentResolver,
                     photoUri,
-                    null,
+                    android.content.ContentValues(),
                 ).build()
             legacyFile != null ->
                 ImageCapture.OutputFileOptions.Builder(legacyFile).build()
@@ -845,20 +852,27 @@ class CameraViewModel : ViewModel() {
             return
         }
 
-        val output = FileUtils.createVideoOutputOptions(context)
-        val outputOptions: OutputOptions = when (output) {
-            is FileUtils.VideoOutput.MediaStoreOutput ->
-                MediaStoreOutputOptions.Builder(context.contentResolver, output.uri)
-                    .build()
-            is FileUtils.VideoOutput.LegacyFileOutput ->
-                FileOutputOptions.Builder(output.file).build()
+        val output = try {
+            FileUtils.createVideoOutputOptions(context)
+        } catch (e: Exception) {
+            Log.e(TAG, "Could not create video output", e)
+            _messages.tryEmit("Could not create video file")
+            return
         }
-
-        val pending = videoCapture.output
-            .prepareRecording(context, outputOptions)
-            .apply {
-                if (PermissionUtils.hasAudioPermission(context)) withAudio()
-            }
+        val prepared: PendingRecording = when (output) {
+            is FileUtils.VideoOutput.MediaStoreOutput ->
+                videoCapture.output.prepareRecording(
+                    context,
+                    FileDescriptorOutputOptions.Builder(output.pfd).build(),
+                )
+            is FileUtils.VideoOutput.LegacyFileOutput ->
+                videoCapture.output.prepareRecording(
+                    context,
+                    FileOutputOptions.Builder(output.file).build(),
+                )
+        }
+        @SuppressLint("MissingPermission") // guarded by hasAudioPermission()
+        val pending = if (PermissionUtils.hasAudioPermission(context)) prepared.withAudioEnabled() else prepared
 
         try {
             val recording = pending.start(ContextCompat.getMainExecutor(context)) { event ->
@@ -874,15 +888,16 @@ class CameraViewModel : ViewModel() {
 
                     is VideoRecordEvent.Finalize -> {
                         stopRecordingTicker()
+                        (output as? FileUtils.VideoOutput.MediaStoreOutput)?.let {
+                            runCatching { it.pfd.close() }
+                        }
                         val hadError = event.hasError()
                         if (hadError) {
                             val code = event.error
                             Log.e(TAG, "Recording finalize error: $code")
                             _messages.tryEmit("Recording failed (error $code)")
-                            if (event is VideoRecordEvent.Finalize) {
-                                event.outputResults.outputUri?.let {
-                                    FileUtils.deletePendingUri(context, it)
-                                }
+                            (output as? FileUtils.VideoOutput.MediaStoreOutput)?.let {
+                                FileUtils.deletePendingUri(context, it.uri)
                             }
                         } else {
                             if (output is FileUtils.VideoOutput.LegacyFileOutput) {

@@ -3,17 +3,21 @@ package com.securecam.app.service
 import android.app.Notification
 import android.app.NotificationManager
 import android.app.PendingIntent
+import android.annotation.SuppressLint
 import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.CountDownTimer
+import android.os.IBinder
 import android.util.Log
 import android.widget.Toast
 import androidx.camera.core.CameraSelector
 import androidx.camera.lifecycle.ProcessCameraProvider
+import androidx.camera.video.FileDescriptorOutputOptions
 import androidx.camera.video.FileOutputOptions
+import androidx.camera.video.PendingRecording
 import androidx.camera.video.FallbackStrategy
 import androidx.camera.video.MediaStoreOutputOptions
 import androidx.camera.video.OutputOptions
@@ -27,7 +31,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
-import androidx.lifecycle.LifecycleRegistry
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ServiceLifecycleDispatcher
 import androidx.lifecycle.lifecycleScope
 import com.securecam.app.MainActivity
@@ -73,7 +77,7 @@ class BackgroundVideoRecordingService : Service(), LifecycleOwner {
     /** Guards double-saves if Finalize fires twice or stop is called late. */
     private var isFinalizing = false
 
-    override val lifecycle: LifecycleRegistry
+    override val lifecycle: Lifecycle
         get() = dispatcher.lifecycle
 
     // ─────────────────────────────────────────────────────────────────────
@@ -86,6 +90,10 @@ class BackgroundVideoRecordingService : Service(), LifecycleOwner {
 
         /** Notification / intent actions. */
         const val ACTION_STOP = "com.securecam.app.action.STOP_RECORDING"
+
+        private const val REQUEST_CODE_OPEN_APP = 10
+        private const val REQUEST_CODE_STOP = 11
+        private const val SAVED_NOTIFICATION_DURATION_MS = 3_000L
 
         /** Observable live state consumed by the camera screen. */
         private val _isRunning = MutableStateFlow(false)
@@ -125,6 +133,13 @@ class BackgroundVideoRecordingService : Service(), LifecycleOwner {
         // happening and be able to stop it.
         promoteToForeground()
         _isRunning.value = true
+    }
+
+    // Started (not bound) service. Service.onBind() is abstract, so it MUST be
+    // overridden; the lifecycle dispatcher also needs to hear about binds.
+    override fun onBind(intent: Intent?): IBinder? {
+        dispatcher.onServicePreSuperOnBind()
+        return null
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -232,7 +247,7 @@ class BackgroundVideoRecordingService : Service(), LifecycleOwner {
                 cameraProvider = provider
                 bindAndStart(provider)
             },
-            mainExecutor,
+            uiExecutor,
         )
     }
 
@@ -252,24 +267,31 @@ class BackgroundVideoRecordingService : Service(), LifecycleOwner {
 
         // BG_<timestamp>.mp4 in Movies/SecureCam (MediaStore on API 29+,
         // direct public file + MediaScanner on API 26–28) — see FileUtils.
-        val output = FileUtils.createBackgroundVideoOutput(this)
+        val output = try {
+            FileUtils.createBackgroundVideoOutput(this)
+        } catch (e: Exception) {
+            Log.e(TAG, "Could not create background video output", e)
+            finishServiceNow()
+            return
+        }
         this.output = output
 
-        val outputOptions: OutputOptions = when (output) {
+        val prepared: PendingRecording = when (output) {
             is FileUtils.VideoOutput.MediaStoreOutput ->
-                MediaStoreOutputOptions.Builder(contentResolver, output.uri).build()
+                videoCapture.output.prepareRecording(
+                    this,
+                    FileDescriptorOutputOptions.Builder(output.pfd).build(),
+                )
             is FileUtils.VideoOutput.LegacyFileOutput ->
-                FileOutputOptions.Builder(output.file).build()
+                videoCapture.output.prepareRecording(
+                    this,
+                    FileOutputOptions.Builder(output.file).build(),
+                )
         }
-
-        val pendingRecording = videoCapture.output
-            .prepareRecording(this, outputOptions)
-            .apply {
-                // Audio is included only when RECORD_AUDIO was granted.
-                if (PermissionUtils.hasAudioPermission(this@BackgroundVideoRecordingService)) {
-                    withAudio()
-                }
-            }
+        // Audio is included only when RECORD_AUDIO was granted.
+        @SuppressLint("MissingPermission")
+        val pendingRecording =
+            if (PermissionUtils.hasAudioPermission(this)) prepared.withAudioEnabled() else prepared
 
         try {
             // FRONT camera only, per spec.
@@ -280,7 +302,7 @@ class BackgroundVideoRecordingService : Service(), LifecycleOwner {
                 videoCapture,
             )
 
-            activeRecording = pendingRecording.start(mainExecutor) { event ->
+            activeRecording = pendingRecording.start(uiExecutor) { event ->
                 handleRecordingEvent(event)
             }
             Log.i(TAG, "Background front-camera recording started (notification visible)")
@@ -309,6 +331,9 @@ class BackgroundVideoRecordingService : Service(), LifecycleOwner {
 
                 // Make sure the pending MediaStore row resolves correctly.
                 val currentOutput = output
+                (currentOutput as? FileUtils.VideoOutput.MediaStoreOutput)?.let {
+                    runCatching { it.pfd.close() }
+                }
                 if (!hadError && currentOutput is FileUtils.VideoOutput.LegacyFileOutput) {
                     FileUtils.indexLegacyFile(this, currentOutput.file)
                 }
@@ -367,7 +392,7 @@ class BackgroundVideoRecordingService : Service(), LifecycleOwner {
         isFinalizing = true
 
         // Detach from foreground but keep the process alive briefly.
-        stopForeground(STOP_FOREGROUND_REMOVE)
+        stopForeground(Service.STOP_FOREGROUND_REMOVE)
 
         val saved = NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle(getString(R.string.bg_notification_saved_title))
@@ -413,15 +438,7 @@ class BackgroundVideoRecordingService : Service(), LifecycleOwner {
     }
 
     /** CameraX callbacks must run on the main thread. */
-    private val mainExecutor: Executor
+    // Not named "mainExecutor": that would clash with Context.getMainExecutor().
+    private val uiExecutor: Executor
         get() = ContextCompat.getMainExecutor(this)
-
-    private companion object {
-        const val REQUEST_CODE_OPEN_APP = 10
-        const val REQUEST_CODE_STOP = 11
-        const val SAVED_NOTIFICATION_DURATION_MS = 3_000L
-
-        /** Alias for readability; available since minSdk 26. */
-        const val STOP_FOREGROUND_REMOVE = Service.STOP_FOREGROUND_REMOVE
-    }
 }

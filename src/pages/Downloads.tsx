@@ -69,7 +69,8 @@ function FileTree() {
       </pre>
       <p className="mt-3 flex items-center gap-1.5 text-[11px] text-muted-foreground">
         <PackageOpen className="size-3.5" />
-        {PROJECT_FILES.length} files · identical structure inside the ZIP
+        {PROJECT_FILES.length} key files shown · the ZIP contains every file
+          in the repository
       </p>
     </div>
   );
@@ -153,7 +154,7 @@ export default function Downloads() {
           <div className="mt-4 flex flex-wrap gap-x-6 gap-y-2 text-[12px] text-muted-foreground">
             <span className="flex items-center gap-1.5">
               <Check className="size-3.5 text-foreground" />
-              153 files · 203 KB
+              129 files · 290 KB
             </span>
             <span className="flex items-center gap-1.5">
               <Check className="size-3.5 text-foreground" />

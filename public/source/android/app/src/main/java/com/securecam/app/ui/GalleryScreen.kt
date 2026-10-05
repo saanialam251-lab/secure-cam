@@ -4,7 +4,9 @@ import android.content.Intent
 import android.net.Uri
 import android.provider.MediaStore
 import android.widget.VideoView
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -184,7 +186,7 @@ fun GalleryScreen(
                             verticalArrangement = Arrangement.spacedBy(1.dp),
                             horizontalArrangement = Arrangement.spacedBy(1.dp),
                         ) {
-                            items(uiState.items, key = { it.id }) { item ->
+                            items(uiState.items, key = { "${if (it.isVideo) "v" else "i"}-${it.id}" }) { item ->
                                 GalleryTile(
                                     item = item,
                                     onClick = { viewModel.setPreviewItem(item) },
@@ -256,7 +258,7 @@ fun GalleryScreen(
                     containerColor = MaterialTheme.colorScheme.inverseSurface,
                     contentColor = MaterialTheme.colorScheme.inverseOnSurface,
                     shape = RoundedCornerShape(8.dp),
-                ) { Text(data.visualMessage) }
+                ) { Text(data.visuals.message) }
             }
         }
     }
@@ -267,14 +269,13 @@ fun GalleryScreen(
 // ─────────────────────────────────────────────────────────────────────────
 
 /** Combined tap + long-press modifier (Compose lacks a built-in pair). */
+@OptIn(ExperimentalFoundationApi::class)
 private fun Modifier.tapAndLongPress(
     onTap: () -> Unit,
     onLongPress: () -> Unit,
-): Modifier = this.then(
-    Modifier.clickable(
-        onClick = onTap,
-        onLongClick = onLongPress,
-    ),
+): Modifier = this.combinedClickable(
+    onClick = onTap,
+    onLongClick = onLongPress,
 )
 
 @Composable
@@ -288,7 +289,7 @@ private fun GalleryTile(
             .aspectRatio(1f)
             .clip(RoundedCornerShape(2.dp))
             .background(MaterialTheme.colorScheme.surfaceVariant)
-            .tapAndLongPress(onTap, onLongPress),
+            .tapAndLongPress(onClick, onLongPress),
     ) {
         AsyncImage(
             model = item.uri,

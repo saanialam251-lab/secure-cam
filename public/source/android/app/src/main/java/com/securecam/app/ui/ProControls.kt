@@ -140,7 +140,7 @@ object ProControls {
             // ── Shutter (log-scaled) ────────────────────────────────────
             AxisRow(
                 label = "SHUTTER",
-                value = settings.exposureTimeNanos?.let(::formatShutter) ?: "Auto",
+                value = settings.exposureTimeNanos?.let { formatShutter(it) } ?: "Auto",
                 onReset = { viewModel.setManualExposureTime(null) },
             )
             Slider(
@@ -358,6 +358,7 @@ object ProControls {
         Spacer(Modifier.height(10.dp))
     }
 
+    @Composable
     private fun sliderColors() = SliderDefaults.colors(
         thumbColor = Paper,
         activeTrackColor = Paper.copy(alpha = 0.9f),

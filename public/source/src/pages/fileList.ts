@@ -273,6 +273,24 @@ export const PROJECT_FILES: ProjectFile[] = [
     lang: "json",
   },
   {
+    path: "bun.lock",
+    label: "bun.lock — exact dependency tree (Bun)",
+    group: "web",
+    lang: "lock",
+  },
+  {
+    path: "public/logo.svg",
+    label: "logo.svg — site icon",
+    group: "web",
+    lang: "svg",
+  },
+  {
+    path: "public/manifest.webmanifest",
+    label: "manifest.webmanifest — PWA manifest",
+    group: "web",
+    lang: "json",
+  },
+  {
     path: "src/main.tsx",
     label: "main.tsx — router + providers",
     group: "web",
